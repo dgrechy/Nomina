@@ -30,7 +30,7 @@
     .phase-title { 
       font-size: 14px; 
       text-transform: uppercase; 
-      letter-spacing: 2px; /* Fixed from 'tracking' */
+      letter-spacing: 2px; 
       color: var(--accent); 
       font-weight: bold; 
     }
@@ -174,7 +174,7 @@
   function advanceStep() {
     if (phase === 1) startPhase2();
     else if (phase === 2) startPhase3();
-    else if (phase === 5) { // Handled the new Review state continuation smoothly
+    else if (phase === 5) {
       initSession();
     }
   }
@@ -199,7 +199,6 @@
           document.getElementById('phase-label').innerText = "Success: Synaptic Link Confirmed";
           document.getElementById('feedback-zone').style.display = "flex";
         } else {
-          // FIXED: Created a safe review phase (Phase 5) so errors don't instantly flash away
           phase = 5;
           document.getElementById('target-name').innerText = currentCard.name;
           document.getElementById('phase-label').innerText = "Link Failed (15% Optimization Rule)";
