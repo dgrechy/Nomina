@@ -59,13 +59,13 @@
 <body>
 
 <div id="game-container">
-  <div class="phase-title" id="phase-label">Assembling Face Database...</div>
+  <div class="phase-title" id="phase-label">Initialising...</div>
   <div id="timer-bar"><div id="timer-fill"></div></div>
 
   <div id="display-area">
     <img id="target-image" src="" alt="Neural Target" style="display:none;">
     <div id="target-name"></div>
-    <div id="rasp-instructions">Syncing US Census naming maps...</div>
+    <div id="rasp-instructions">Preparing training nodes...</div>
     <div id="input-container" style="display:none; width:100%; text-align:center;">
       <input type="text" id="recall-input" placeholder="Type..." autocomplete="off" autofocus>
     </div>
@@ -82,9 +82,20 @@
 </div>
 
 <script>
-  // Top popular US first names array
-  const usNamesM = ["Liam", "Noah", "Oliver", "Elijah", "James", "William", "Benjamin", "Lucas", "Henry", "Alexander", "Mason", "Michael", "Ethan", "Daniel", "Jacob", "Logan", "Jackson", "Levi", "Sebastian", "Mateo", "Jack", "Owen", "Theodore", "Aiden", "Samuel", "Joseph", "John", "David", "Wyatt", "Luke", "Asher", "Carter", "Julian", "Grayson", "Leo", "Jayden", "Gabriel", "Isaac", "Lincoln", "Anthony", "Hudson", "Dylan", "Ezra", "Thomas", "Charles", "Christopher", "Jaxon", "Maverick", "Josiah", "Isaiah", "Andrew", "Elias", "Joshua", "Nathan", "Caleb", "Ryan", "Adrian", "Miles", "Eli", "Nolan", "Christian", "Aaron", "Cameron", "Ezekiel", "Colton", "Luca", "Landon", "Hunter", "Jonathan", "Santiago", "Axel", "Brooks", "Ian", "Jameson", "Cooper", "Angel", "Dominic", "Amari", "Jordan", "Ian", "Kai", "Nova", "Silas", "Felix", "Victor", "Marcus"];
-  const usNamesF = ["Olivia", "Emma", "Charlotte", "Amelia", "Sophia", "Ava", "Isabella", "Mia", "Evelyn", "Harper", "Luna", "Camila", "Gianna", "Elizabeth", "Eleanor", "Ella", "Avery", "Sofia", "Violet", "Aurora", "Hazel", "Aria", "Scarlett", "Elena", "Naomi", "Ellie", "Claire", "Lily", "Maya", "Nova", "Isla", "Elena", "Mia", "Zoe", "Stella", "Grace", "Harper", "Chloe", "Victoria", "Riley", "Aniyah", "Zoey", "Penelope", "Layla", "Aaliyah", "Nora", "Lily", "Mila", "Hannah", "Lillian", "Addison", "Aubrey", "Ellie", "Stella", "Natalie", "Leah", "Savannah", "Skyler", "Willow", "Paisley", "Audrey", "Brooklyn", "Bella", "Claire", "Lucy", "Anna", "Caroline", "Kennedy", "Valentina", "Ruby", "Eva", "Alice", "Sadie", "Natalia", "Gabriella", "Autumn", "Quinn", "Cora", "Jade", "Piper"];
+  const usNamesM = ["Liam", "Noah", "Oliver", "Elijah", "James", "William", "Benjamin", "Lucas", "Henry", "Alexander", "Mason", "Michael", "Ethan", "Daniel", "Jacob", "Logan", "Jackson", "Levi", "Sebastian", "Mateo", "Jack", "Owen", "Theodore", "Aiden", "Samuel", "Joseph", "John", "David", "Wyatt", "Luke", "Asher", "Carter", "Julian", "Grayson", "Leo", "Jayden", "Gabriel", "Isaac", "Lincoln", "Anthony", "Hudson", "Dylan", "Ezra", "Thomas", "Charles", "Christopher", "Jaxon", "Maverick", "Josiah", "Isaiah", "Andrew", "Elias", "Joshua", "Nathan", "Caleb", "Ryan", "Adrian", "Miles", "Eli", "Nolan", "Christian", "Aaron", "Cameron", "Ezekiel", "Colton", "Luca", "Landon", "Hunter", "Jonathan", "Santiago", "Axel", "Brooks", "Ian", "Jameson", "Cooper", "Angel", "Dominic", "Amari", "Jordan", "Kai", "Nova", "Silas", "Felix", "Victor", "Marcus"];
+  const usNamesF = ["Olivia", "Emma", "Charlotte", "Amelia", "Sophia", "Ava", "Isabella", "Mia", "Evelyn", "Harper", "Luna", "Camila", "Gianna", "Elizabeth", "Eleanor", "Ella", "Avery", "Sofia", "Violet", "Aurora", "Hazel", "Aria", "Scarlett", "Naomi", "Ellie", "Claire", "Lily", "Maya", "Nova", "Isla", "Elena", "Zoe", "Stella", "Grace", "Chloe", "Victoria", "Riley", "Aniyah", "Zoey", "Penelope", "Layla", "Aaliyah", "Nora", "Mila", "Hannah", "Lillian", "Addison", "Aubrey", "Natalie", "Leah", "Savannah", "Skyler", "Willow", "Paisley", "Audrey", "Brooklyn", "Bella", "Lucy", "Anna", "Caroline", "Kennedy", "Valentina", "Ruby", "Eva", "Alice", "Sadie", "Natalia", "Gabriella", "Autumn", "Quinn", "Cora", "Jade", "Piper"];
+
+  // Linguistic Disruption Database
+  const quotesPool = [
+    { text: "Time is a storm in which we are all lost.", word: "lost" },
+    { text: "What we achieve inwardly will change outer reality.", word: "reality" },
+    { text: "The only permanent thing in this universe is change.", word: "change" },
+    { text: "Adopt the pace of nature: her secret is patience.", word: "patience" },
+    { text: "Simplicity is the ultimate sophistication.", word: "sophistication" },
+    { text: "We do not remember days, we remember moments.", word: "moments" },
+    { text: "In the depth of winter, I finally learned that within me there lay an invincible summer.", word: "summer" },
+    { text: "The journey of a thousand miles begins with one step.", word: "step" }
+  ];
 
   let mockDatabase = [];
   let currentCard = null;
@@ -94,37 +105,20 @@
   let startTime;
   let correctMathAnswer = 0;
   let mathStreak = 0;
-  let customUserAnchor = ""; // Stores your specific mental hook for verification
+  let customUserAnchor = ""; 
+  let currentQuote = null;
 
-  // Combines gender-explicit names with verified human portraits
   function generateUSFaceMatrix() {
     mockDatabase = [];
     let idCounter = 1;
-
-    // Build 100 Male Nodes
     for (let i = 0; i < 100; i++) {
-      let name = usNamesM[i % usNamesM.length];
-      mockDatabase.push({
-        id: idCounter++,
-        name: name,
-        img: `https://randomuser.me/api/portraits/men/${i}.jpg`
-      });
-    }
-
-    // Build 100 Female Nodes
-    for (let i = 0; i < 100; i++) {
-      let name = usNamesF[i % usNamesF.length];
-      mockDatabase.push({
-        id: idCounter++,
-        name: name,
-        img: `https://randomuser.me/api/portraits/women/${i}.jpg`
-      });
+      mockDatabase.push({ id: idCounter++, name: usNamesM[i % usNamesM.length], img: `https://randomuser.me/api/portraits/men/${i}.jpg` });
+      mockDatabase.push({ id: idCounter++, name: usNamesF[i % usNamesF.length], img: `https://randomuser.me/api/portraits/women/${i}.jpg` });
     }
   }
 
   function initSession() {
     if (mockDatabase.length === 0) generateUSFaceMatrix();
-    
     let pool = mockDatabase.filter(card => card.id !== lastCardId);
     currentCard = pool[Math.floor(Math.random() * pool.length)];
     lastCardId = currentCard.id; 
@@ -151,7 +145,7 @@
   function startPhase1() {
     phase = 1;
     document.getElementById('input-container').style.display = "none";
-    document.getElementById('phase-label').innerText = "Phase 1: 10s Active Feature Extraction";
+    document.getElementById('phase-label').innerText = "Phase 1: Active Feature Extraction";
     
     const targetImg = document.getElementById('target-image');
     targetImg.src = currentCard.img;
@@ -159,19 +153,18 @@
     targetImg.style.filter = "none";
     
     document.getElementById('target-name').innerText = "";
-    document.getElementById('rasp-instructions').innerHTML = "Scan this face carefully. Locate <b>one</b> highly distinct micro-feature (e.g., eye shape, hair parting, jaw curve, neck structure).";
+    document.getElementById('rasp-instructions').innerHTML = "Scan this face. Isolate **one** distinct structural feature (e.g., nose shape, eyebrow line, a hair wave).";
     document.getElementById('action-btn').innerText = "Next";
     document.getElementById('action-btn').style.display = "block";
     
     startTimer(10000, startPhase1B); 
   }
 
-  // Intermediate Step: Forces you to lock your discovered feature into text
   function startPhase1B() {
-    phase = 15; // Phase 1.5 Anchor definition
+    phase = 15; 
     clearInterval(timerInterval);
     document.getElementById('phase-label').innerText = "Lock Visual Anchor";
-    document.getElementById('rasp-instructions').innerText = "Type the specific feature you isolated (e.g., 'crooked nose', 'thick eyebrows'):";
+    document.getElementById('rasp-instructions').innerText = "Type the specific feature you isolated (e.g., 'left eye crinkle', 'square jaw'):";
     document.getElementById('action-btn').style.display = "none";
     document.getElementById('input-container').style.display = "block";
     document.getElementById('recall-input').placeholder = "Enter physical anchor...";
@@ -186,27 +179,50 @@
     document.getElementById('target-name').innerText = currentCard.name;
     document.getElementById('rasp-instructions').innerHTML = `Bind the name <b>${currentCard.name}</b> to your anchor: <span style="color:var(--accent); font-weight:bold;">"${customUserAnchor}"</span>.<br><br><b>R</b>epeat | <b>A</b>ssociate | <b>S</b>peak aloud | <b>P</b>icture it melting together`;
     
-    startTimer(8000, startPhase3);
+    startTimer(8000, startPhase3A);
+  }
+
+  // NEW STEP 1: 10-Second Consolidation Gap
+  function startPhase3A() {
+    phase = 31;
+    document.getElementById('target-image').style.filter = "brightness(0)"; 
+    document.getElementById('target-name').innerText = "";
+    document.getElementById('phase-label').innerText = "Phase 3A: Consolidation Pause";
+    document.getElementById('rasp-instructions').innerHTML = "Let the visual link settle in your mind. Keep your thoughts clear.";
+    
+    startTimer(10000, startPhase3B);
+  }
+
+  // NEW STEP 2: Linguistic Disruption Challenge
+  function startPhase3B() {
+    phase = 32;
+    document.getElementById('phase-label').innerText = "Phase 3B: Linguistic Overwrite";
+    currentQuote = quotesPool[Math.floor(Math.random() * quotesPool.length)];
+    
+    document.getElementById('rasp-instructions').innerHTML = `Read this quote carefully to clear your audio buffer:<br><br><i style="font-size:16px; color:#E2E8F0;">"${currentQuote.text}"</i><br><br><b style="color:var(--accent);">To continue, type the VERY LAST word of the quote:</b>`;
+    document.getElementById('input-container').style.display = "block";
+    document.getElementById('recall-input').placeholder = "Type last word...";
+    document.getElementById('recall-input').value = "";
+    document.getElementById('recall-input').focus();
+    
+    startTimer(20000, startPhase3C); // 20 seconds to read and verify
   }
 
   function generateHardMathProblem() {
     const num1 = Math.floor(Math.random() * 75) + 15; 
     const num2 = Math.floor(Math.random() * 75) + 15; 
     correctMathAnswer = num1 + num2;
-    document.getElementById('rasp-instructions').innerHTML = `Solve to shatter phonetic loop echo (${mathStreak}/3):<br><b style="font-size:32px; color:white; letter-spacing:1px;">${num1} + ${num2} = ?</b>`;
+    document.getElementById('rasp-instructions').innerHTML = `Solve to finish wiping short-term memory cache (${mathStreak}/3):<br><b style="font-size:32px; color:white; letter-spacing:1px;">${num1} + ${num2} = ?</b>`;
   }
 
-  function startPhase3() {
-    phase = 3;
-    document.getElementById('phase-label').innerText = "Phase 3: Cognitive Cache Wiper";
-    document.getElementById('target-image').style.filter = "brightness(0)"; 
-    document.getElementById('target-name').innerText = "";
-    
+  // NEW STEP 3: Downstream Numerical Working Memory Drain
+  function startPhase3C() {
+    phase = 33;
+    document.getElementById('phase-label').innerText = "Phase 3C: Working Memory Drain";
     generateHardMathProblem();
     
-    document.getElementById('action-btn').style.display = "none";
     document.getElementById('input-container').style.display = "block";
-    document.getElementById('recall-input').placeholder = "Type calculation...";
+    document.getElementById('recall-input').placeholder = "Type math answer...";
     document.getElementById('recall-input').value = "";
     document.getElementById('recall-input').focus();
     
@@ -219,7 +235,7 @@
     phase = 4;
     document.getElementById('phase-label').innerText = "Phase 4: Synaptic Retrieval";
     document.getElementById('target-image').style.filter = "none";
-    document.getElementById('rasp-instructions').innerHTML = `Recall the name linked to your anchor: <span style="color:var(--accent);">"${customUserAnchor}"</span>`;
+    document.getElementById('rasp-instructions').innerHTML = `Recall the name linked to your anchor: <span style="color:var(--accent); font-weight:bold;">"${customUserAnchor}"</span>`;
     document.getElementById('input-container').style.display = "block";
     document.getElementById('recall-input').placeholder = "Type first name...";
     document.getElementById('recall-input').value = "";
@@ -243,7 +259,16 @@
           customUserAnchor = inputVal;
           startPhase2();
         }
-      } else if (phase === 3) {
+      } else if (phase === 32) {
+        // Validate linguistic verification word
+        const cleanInput = inputVal.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+        if (cleanInput === currentQuote.word) {
+          clearInterval(timerInterval);
+          startPhase3C();
+        } else {
+          this.value = ""; // Force them to type it right to guarantee cognitive engagement
+        }
+      } else if (phase === 33) {
         if (parseInt(inputVal) === correctMathAnswer) {
           mathStreak++;
           this.value = "";
@@ -268,7 +293,7 @@
           phase = 5;
           document.getElementById('target-name').innerText = currentCard.name;
           document.getElementById('phase-label').innerText = "Link Fractured";
-          document.getElementById('rasp-instructions').innerHTML = `You typed: <span style="color:#EF4444;">"${inputVal}"</span>.<br><br>The correct name was <b>${currentCard.name}</b>.<br>Your assigned visual anchor was: <b>"${customUserAnchor}"</b>.<br><br>Force your focus onto that area now before hitting continue.`;
+          document.getElementById('rasp-instructions').innerHTML = `You typed: <span style="color:#EF4444;">"${inputVal}"</span>.<br><br>The correct name was <b>${currentCard.name}</b>.<br>Your visual anchor was: <b>"${customUserAnchor}"</b>.<br><br>Study the face and map the name back to that anchor area before continuing.`;
           document.getElementById('action-btn').innerText = "Continue Training";
           document.getElementById('action-btn').style.display = "block";
         }
