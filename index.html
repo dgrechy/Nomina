@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Nomina Neuro-Trainer Pro</title>
+  <title>Nomina Face Trainer Pro</title>
   <link rel="manifest" href="manifest.json">
   <style>
     :root {
@@ -59,13 +59,13 @@
 <body>
 
 <div id="game-container">
-  <div class="phase-title" id="phase-label">Generating Matrix...</div>
+  <div class="phase-title" id="phase-label">Assembling Face Database...</div>
   <div id="timer-bar"><div id="timer-fill"></div></div>
 
   <div id="display-area">
     <img id="target-image" src="" alt="Neural Target" style="display:none;">
     <div id="target-name"></div>
-    <div id="rasp-instructions">Processing neural nodes...</div>
+    <div id="rasp-instructions">Syncing US Census naming maps...</div>
     <div id="input-container" style="display:none; width:100%; text-align:center;">
       <input type="text" id="recall-input" placeholder="Type..." autocomplete="off" autofocus>
     </div>
@@ -82,12 +82,9 @@
 </div>
 
 <script>
-  // Core generator matrices to construct 1,000 completely unique visual/verbal entities
-  const namesPool = ["Liam", "Noah", "Oliver", "Elijah", "James", "Benjamin", "Lucas", "Henry", "Alexander", "Mason", "Michael", "Ethan", "Daniel", "Jacob", "Logan", "Jackson", "Levi", "Sebastian", "Jack", "Owen", "Theodore", "Aiden", "Samuel", "Joseph", "John", "David", "Wyatt", "Luke", "Asher", "Carter", "Julien", "Leo", "Caleb", "Silas", "Felix", "Victor", "Marcus", "Elena", "Maya", "Nina", "Zara", "Chloe", "Olivia", "Emma", "Amelia", "Sophia", "Ava", "Isabella", "Mia", "Evelyn", "Harper", "Camila", "Gianna", "Luna", "Ella", "Avery", "Scarlett", "Elena", "Aria", "Victoria"];
-  const featuresPool = [
-    "the asymmetrical eyebrow arch.", "the heavy, dark brow line.", "the deep-set, piercing eyes.", "the subtle crinkle lines at the outer eyes.", "the highly defined, sharp jaw structure.", "the slight dimple located right on the chin.", "the distinct widening or parting of the hair.", "the thin, firmly compressed lip expression.", "the prominent, high-set cheekbone definition.", "the wide, intense focal gaze.", "the uniquely square glasses lens silhouette.", "the structural slope of the nose bridge.", "the clean, geometric hairline boundary.", "the smooth contouring along the jaw curve.", "the subtle downward tilt of the head posture."
-  ];
-  const itemsPool = ["Vessel", "Prism", "Matrix", "Beacon", "Anchor", "Vector", "Helix", "Compass", "Cylinder", "Spindle", "Aegis", "Stratum", "Vertex", "Catalyst", "Apex", "Conduit", "Orbiter", "Tensor", "Fractal", "Gasket"];
+  // Top popular US first names array
+  const usNamesM = ["Liam", "Noah", "Oliver", "Elijah", "James", "William", "Benjamin", "Lucas", "Henry", "Alexander", "Mason", "Michael", "Ethan", "Daniel", "Jacob", "Logan", "Jackson", "Levi", "Sebastian", "Mateo", "Jack", "Owen", "Theodore", "Aiden", "Samuel", "Joseph", "John", "David", "Wyatt", "Luke", "Asher", "Carter", "Julian", "Grayson", "Leo", "Jayden", "Gabriel", "Isaac", "Lincoln", "Anthony", "Hudson", "Dylan", "Ezra", "Thomas", "Charles", "Christopher", "Jaxon", "Maverick", "Josiah", "Isaiah", "Andrew", "Elias", "Joshua", "Nathan", "Caleb", "Ryan", "Adrian", "Miles", "Eli", "Nolan", "Christian", "Aaron", "Cameron", "Ezekiel", "Colton", "Luca", "Landon", "Hunter", "Jonathan", "Santiago", "Axel", "Brooks", "Ian", "Jameson", "Cooper", "Angel", "Dominic", "Amari", "Jordan", "Ian", "Kai", "Nova", "Silas", "Felix", "Victor", "Marcus"];
+  const usNamesF = ["Olivia", "Emma", "Charlotte", "Amelia", "Sophia", "Ava", "Isabella", "Mia", "Evelyn", "Harper", "Luna", "Camila", "Gianna", "Elizabeth", "Eleanor", "Ella", "Avery", "Sofia", "Violet", "Aurora", "Hazel", "Aria", "Scarlett", "Elena", "Naomi", "Ellie", "Claire", "Lily", "Maya", "Nova", "Isla", "Elena", "Mia", "Zoe", "Stella", "Grace", "Harper", "Chloe", "Victoria", "Riley", "Aniyah", "Zoey", "Penelope", "Layla", "Aaliyah", "Nora", "Lily", "Mila", "Hannah", "Lillian", "Addison", "Aubrey", "Ellie", "Stella", "Natalie", "Leah", "Savannah", "Skyler", "Willow", "Paisley", "Audrey", "Brooklyn", "Bella", "Claire", "Lucy", "Anna", "Caroline", "Kennedy", "Valentina", "Ruby", "Eva", "Alice", "Sadie", "Natalia", "Gabriella", "Autumn", "Quinn", "Cora", "Jade", "Piper"];
 
   let mockDatabase = [];
   let currentCard = null;
@@ -97,42 +94,42 @@
   let startTime;
   let correctMathAnswer = 0;
   let mathStreak = 0;
+  let customUserAnchor = ""; // Stores your specific mental hook for verification
 
-  // Procedural Engine: Compiles exactly 1,000 unique records dynamically on app launch
-  function generate1000Profiles() {
+  // Combines gender-explicit names with verified human portraits
+  function generateUSFaceMatrix() {
     mockDatabase = [];
-    for (let i = 1; i <= 1000; i++) {
-      if (i % 2 === 0) {
-        // Human Profiles
-        let name = namesPool[i % namesPool.length];
-        let feature = featuresPool[Math.floor((i * 3) % featuresPool.length)];
-        mockDatabase.push({
-          id: i,
-          name: `${name}`,
-          // Using a secure, high-speed open catalog of face IDs to keep 1000 entries lightweight
-          img: `https://picsum.photos/id/${(i % 90) + 10}/400/400`, 
-          hint: `Isolate and lock onto ${feature} Map the name ${name} explicitly to that feature.`
-        });
-      } else {
-        // Object/Thing Profiles (Cross-modal noun binding training)
-        let name = itemsPool[i % itemsPool.length] + "-" + (100 + (i % 900));
-        mockDatabase.push({
-          id: i,
-          name: name,
-          img: `https://picsum.photos/id/${(i % 120) + 150}/400/400`,
-          hint: `Analyze the form, edge contrast, or mechanical texture. Bind the code ${name} to its geometry.`
-        });
-      }
+    let idCounter = 1;
+
+    // Build 100 Male Nodes
+    for (let i = 0; i < 100; i++) {
+      let name = usNamesM[i % usNamesM.length];
+      mockDatabase.push({
+        id: idCounter++,
+        name: name,
+        img: `https://randomuser.me/api/portraits/men/${i}.jpg`
+      });
+    }
+
+    // Build 100 Female Nodes
+    for (let i = 0; i < 100; i++) {
+      let name = usNamesF[i % usNamesF.length];
+      mockDatabase.push({
+        id: idCounter++,
+        name: name,
+        img: `https://randomuser.me/api/portraits/women/${i}.jpg`
+      });
     }
   }
 
   function initSession() {
-    if (mockDatabase.length === 0) generate1000Profiles();
+    if (mockDatabase.length === 0) generateUSFaceMatrix();
     
     let pool = mockDatabase.filter(card => card.id !== lastCardId);
     currentCard = pool[Math.floor(Math.random() * pool.length)];
     lastCardId = currentCard.id; 
     mathStreak = 0;
+    customUserAnchor = "";
     startPhase1();
   }
 
@@ -154,7 +151,7 @@
   function startPhase1() {
     phase = 1;
     document.getElementById('input-container').style.display = "none";
-    document.getElementById('phase-label').innerText = "Phase 1: 10s Deep Feature Scan";
+    document.getElementById('phase-label').innerText = "Phase 1: 10s Active Feature Extraction";
     
     const targetImg = document.getElementById('target-image');
     targetImg.src = currentCard.img;
@@ -162,33 +159,46 @@
     targetImg.style.filter = "none";
     
     document.getElementById('target-name').innerText = "";
-    document.getElementById('rasp-instructions').innerText = currentCard.hint;
+    document.getElementById('rasp-instructions').innerHTML = "Scan this face carefully. Locate <b>one</b> highly distinct micro-feature (e.g., eye shape, hair parting, jaw curve, neck structure).";
     document.getElementById('action-btn').innerText = "Next";
     document.getElementById('action-btn').style.display = "block";
     
-    startTimer(10000, startPhase2); // 10 FULL seconds to scan and locate your target anchor feature
+    startTimer(10000, startPhase1B); 
+  }
+
+  // Intermediate Step: Forces you to lock your discovered feature into text
+  function startPhase1B() {
+    phase = 15; // Phase 1.5 Anchor definition
+    clearInterval(timerInterval);
+    document.getElementById('phase-label').innerText = "Lock Visual Anchor";
+    document.getElementById('rasp-instructions').innerText = "Type the specific feature you isolated (e.g., 'crooked nose', 'thick eyebrows'):";
+    document.getElementById('action-btn').style.display = "none";
+    document.getElementById('input-container').style.display = "block";
+    document.getElementById('recall-input').placeholder = "Enter physical anchor...";
+    document.getElementById('recall-input').value = "";
+    document.getElementById('recall-input').focus();
   }
 
   function startPhase2() {
     phase = 2;
+    document.getElementById('input-container').style.display = "none";
     document.getElementById('phase-label').innerText = "Phase 2: RASP Encoding Loop";
     document.getElementById('target-name').innerText = currentCard.name;
-    document.getElementById('rasp-instructions').innerHTML = "<b>R</b>epeat once | <b>A</b>ssociate with the chosen anchor | <b>S</b>peak aloud | <b>P</b>icture it fusing permanently";
+    document.getElementById('rasp-instructions').innerHTML = `Bind the name <b>${currentCard.name}</b> to your anchor: <span style="color:var(--accent); font-weight:bold;">"${customUserAnchor}"</span>.<br><br><b>R</b>epeat | <b>A</b>ssociate | <b>S</b>peak aloud | <b>P</b>icture it melting together`;
     
     startTimer(8000, startPhase3);
   }
 
   function generateHardMathProblem() {
-    // Upgraded to Double-Digit complex arithmetic to thoroughly wipe working memory channels
-    const num1 = Math.floor(Math.random() * 75) + 15; // Range: 15 to 89
+    const num1 = Math.floor(Math.random() * 75) + 15; 
     const num2 = Math.floor(Math.random() * 75) + 15; 
     correctMathAnswer = num1 + num2;
-    document.getElementById('rasp-instructions').innerHTML = `Solve to obliterate phonological echo (${mathStreak}/3):<br><b style="font-size:32px; color:white; letter-spacing:1px;">${num1} + ${num2} = ?</b>`;
+    document.getElementById('rasp-instructions').innerHTML = `Solve to shatter phonetic loop echo (${mathStreak}/3):<br><b style="font-size:32px; color:white; letter-spacing:1px;">${num1} + ${num2} = ?</b>`;
   }
 
   function startPhase3() {
     phase = 3;
-    document.getElementById('phase-label').innerText = "Phase 3: The Cognitive Eraser";
+    document.getElementById('phase-label').innerText = "Phase 3: Cognitive Cache Wiper";
     document.getElementById('target-image').style.filter = "brightness(0)"; 
     document.getElementById('target-name').innerText = "";
     
@@ -196,31 +206,29 @@
     
     document.getElementById('action-btn').style.display = "none";
     document.getElementById('input-container').style.display = "block";
-    document.getElementById('recall-input').placeholder = "Type math answer...";
+    document.getElementById('recall-input').placeholder = "Type calculation...";
     document.getElementById('recall-input').value = "";
     document.getElementById('recall-input').focus();
     
     startTimer(25000, () => {
-      // 25-second total runway allocated for processing three double-digit sets
       startPhase4();
     });
   }
 
   function startPhase4() {
     phase = 4;
-    document.getElementById('phase-label').innerText = "Phase 4: Active Retrieval Challenge";
+    document.getElementById('phase-label').innerText = "Phase 4: Synaptic Retrieval";
     document.getElementById('target-image').style.filter = "none";
-    document.getElementById('rasp-instructions').innerText = "Retrieve the name or identifier strictly from your visual network link:";
+    document.getElementById('rasp-instructions').innerHTML = `Recall the name linked to your anchor: <span style="color:var(--accent);">"${customUserAnchor}"</span>`;
     document.getElementById('input-container').style.display = "block";
-    document.getElementById('recall-input').placeholder = "Type name/code...";
+    document.getElementById('recall-input').placeholder = "Type first name...";
     document.getElementById('recall-input').value = "";
     document.getElementById('recall-input').focus();
     startTime = Date.now();
   }
 
   function advanceStep() {
-    if (phase === 1) startPhase2();
-    else if (phase === 2) startPhase3();
+    if (phase === 1) startPhase1B();
     else if (phase === 5) {
       initSession();
     }
@@ -228,9 +236,14 @@
 
   document.getElementById('recall-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-      const inputVal = this.value.trim().toLowerCase();
+      const inputVal = this.value.trim();
 
-      if (phase === 3) {
+      if (phase === 15) {
+        if (inputVal.length > 2) {
+          customUserAnchor = inputVal;
+          startPhase2();
+        }
+      } else if (phase === 3) {
         if (parseInt(inputVal) === correctMathAnswer) {
           mathStreak++;
           this.value = "";
@@ -247,15 +260,15 @@
         const targetVal = currentCard.name.toLowerCase();
         document.getElementById('input-container').style.display = "none";
 
-        if (inputVal === targetVal) {
+        if (inputVal.toLowerCase() === targetVal) {
           document.getElementById('target-name').innerText = currentCard.name;
-          document.getElementById('phase-label').innerText = "Success: Deep Link Verified";
+          document.getElementById('phase-label').innerText = "Success: Circuit Active";
           document.getElementById('feedback-zone').style.display = "flex";
         } else {
           phase = 5;
           document.getElementById('target-name').innerText = currentCard.name;
-          document.getElementById('phase-label').innerText = "Link Broken (Error Rewiring Triggered)";
-          document.getElementById('rasp-instructions').innerHTML = `You typed: <span style="color:#EF4444;">"${this.value}"</span>.<br><br>Re-anchor the identifier: <b>${currentCard.name}</b>.<br><br>${currentCard.hint}`;
+          document.getElementById('phase-label').innerText = "Link Fractured";
+          document.getElementById('rasp-instructions').innerHTML = `You typed: <span style="color:#EF4444;">"${inputVal}"</span>.<br><br>The correct name was <b>${currentCard.name}</b>.<br>Your assigned visual anchor was: <b>"${customUserAnchor}"</b>.<br><br>Force your focus onto that area now before hitting continue.`;
           document.getElementById('action-btn').innerText = "Continue Training";
           document.getElementById('action-btn').style.display = "block";
         }
