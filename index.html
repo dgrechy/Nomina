@@ -59,13 +59,13 @@
 <body>
 
 <div id="game-container">
-  <div class="phase-title" id="phase-label">Initialising...</div>
+  <div class="phase-title" id="phase-label">Initializing...</div>
   <div id="timer-bar"><div id="timer-fill"></div></div>
 
   <div id="display-area">
     <img id="target-image" src="" alt="Neural Target" style="display:none;">
     <div id="target-name"></div>
-    <div id="rasp-instructions">Preparing training nodes...</div>
+    <div id="rasp-instructions">Preparing tracking metrics...</div>
     <div id="input-container" style="display:none; width:100%; text-align:center;">
       <input type="text" id="recall-input" placeholder="Type..." autocomplete="off" autofocus>
     </div>
@@ -85,28 +85,18 @@
   const usNamesM = ["Liam", "Noah", "Oliver", "Elijah", "James", "William", "Benjamin", "Lucas", "Henry", "Alexander", "Mason", "Michael", "Ethan", "Daniel", "Jacob", "Logan", "Jackson", "Levi", "Sebastian", "Mateo", "Jack", "Owen", "Theodore", "Aiden", "Samuel", "Joseph", "John", "David", "Wyatt", "Luke", "Asher", "Carter", "Julian", "Grayson", "Leo", "Jayden", "Gabriel", "Isaac", "Lincoln", "Anthony", "Hudson", "Dylan", "Ezra", "Thomas", "Charles", "Christopher", "Jaxon", "Maverick", "Josiah", "Isaiah", "Andrew", "Elias", "Joshua", "Nathan", "Caleb", "Ryan", "Adrian", "Miles", "Eli", "Nolan", "Christian", "Aaron", "Cameron", "Ezekiel", "Colton", "Luca", "Landon", "Hunter", "Jonathan", "Santiago", "Axel", "Brooks", "Ian", "Jameson", "Cooper", "Angel", "Dominic", "Amari", "Jordan", "Kai", "Nova", "Silas", "Felix", "Victor", "Marcus"];
   const usNamesF = ["Olivia", "Emma", "Charlotte", "Amelia", "Sophia", "Ava", "Isabella", "Mia", "Evelyn", "Harper", "Luna", "Camila", "Gianna", "Elizabeth", "Eleanor", "Ella", "Avery", "Sofia", "Violet", "Aurora", "Hazel", "Aria", "Scarlett", "Naomi", "Ellie", "Claire", "Lily", "Maya", "Nova", "Isla", "Elena", "Zoe", "Stella", "Grace", "Chloe", "Victoria", "Riley", "Aniyah", "Zoey", "Penelope", "Layla", "Aaliyah", "Nora", "Mila", "Hannah", "Lillian", "Addison", "Aubrey", "Natalie", "Leah", "Savannah", "Skyler", "Willow", "Paisley", "Audrey", "Brooklyn", "Bella", "Lucy", "Anna", "Caroline", "Kennedy", "Valentina", "Ruby", "Eva", "Alice", "Sadie", "Natalia", "Gabriella", "Autumn", "Quinn", "Cora", "Jade", "Piper"];
 
-  // Linguistic Disruption Database
-  const quotesPool = [
-    { text: "Time is a storm in which we are all lost.", word: "lost" },
-    { text: "What we achieve inwardly will change outer reality.", word: "reality" },
-    { text: "The only permanent thing in this universe is change.", word: "change" },
-    { text: "Adopt the pace of nature: her secret is patience.", word: "patience" },
-    { text: "Simplicity is the ultimate sophistication.", word: "sophistication" },
-    { text: "We do not remember days, we remember moments.", word: "moments" },
-    { text: "In the depth of winter, I finally learned that within me there lay an invincible summer.", word: "summer" },
-    { text: "The journey of a thousand miles begins with one step.", word: "step" }
-  ];
-
   let mockDatabase = [];
   let currentCard = null;
   let lastCardId = null; 
   let phase = 1; 
   let timerInterval;
   let startTime;
-  let correctMathAnswer = 0;
-  let mathStreak = 0;
   let customUserAnchor = ""; 
-  let currentQuote = null;
+  
+  // Cognitive Jammer State Tracking Variables
+  let currentString = "";
+  let expectedReverseString = "";
+  let jammerRound = 1;
 
   function generateUSFaceMatrix() {
     mockDatabase = [];
@@ -122,7 +112,7 @@
     let pool = mockDatabase.filter(card => card.id !== lastCardId);
     currentCard = pool[Math.floor(Math.random() * pool.length)];
     lastCardId = currentCard.id; 
-    mathStreak = 0;
+    jammerRound = 1;
     customUserAnchor = "";
     startPhase1();
   }
@@ -164,7 +154,7 @@
     phase = 15; 
     clearInterval(timerInterval);
     document.getElementById('phase-label').innerText = "Lock Visual Anchor";
-    document.getElementById('rasp-instructions').innerText = "Type the specific feature you isolated (e.g., 'left eye crinkle', 'square jaw'):";
+    document.getElementById('rasp-instructions').innerText = "Type the specific feature you isolated:";
     document.getElementById('action-btn').style.display = "none";
     document.getElementById('input-container').style.display = "block";
     document.getElementById('recall-input').placeholder = "Enter physical anchor...";
@@ -179,55 +169,48 @@
     document.getElementById('target-name').innerText = currentCard.name;
     document.getElementById('rasp-instructions').innerHTML = `Bind the name <b>${currentCard.name}</b> to your anchor: <span style="color:var(--accent); font-weight:bold;">"${customUserAnchor}"</span>.<br><br><b>R</b>epeat | <b>A</b>ssociate | <b>S</b>peak aloud | <b>P</b>icture it melting together`;
     
-    startTimer(8000, startPhase3A);
+    startTimer(8000, startPhase3Flash);
   }
 
-  // NEW STEP 1: 10-Second Consolidation Gap
-  function startPhase3A() {
+  function generateRandomAlphanumeric() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Removed confusing characters like I, O, 1, 0
+    let str = "";
+    for (let i = 0; i < 4; i++) {
+      str += chars.charAt(Math.floor(Math.random() * chars.length)) + " ";
+    }
+    currentString = str.trim();
+    expectedReverseString = currentString.split(" ").reverse().join("");
+  }
+
+  // Phase 3 - Part 1: Flash the alphanumeric sequence
+  function startPhase3Flash() {
     phase = 31;
     document.getElementById('target-image').style.filter = "brightness(0)"; 
     document.getElementById('target-name').innerText = "";
-    document.getElementById('phase-label').innerText = "Phase 3A: Consolidation Pause";
-    document.getElementById('rasp-instructions').innerHTML = "Let the visual link settle in your mind. Keep your thoughts clear.";
+    document.getElementById('input-container').style.display = "none";
+    document.getElementById('phase-label').innerText = `Phase 3: Cache Wipe (${jammerRound}/2)`;
     
-    startTimer(10000, startPhase3B);
+    generateRandomAlphanumeric();
+    
+    document.getElementById('rasp-instructions').innerHTML = `Commit this string to memory immediately:<br><br><b style="font-size:42px; color:white; letter-spacing:6px;">${currentString}</b>`;
+    
+    startTimer(25000 / 10, startPhase3Input); // Flashes onscreen for exactly 2.5 seconds
   }
 
-  // NEW STEP 2: Linguistic Disruption Challenge
-  function startPhase3B() {
+  // Phase 3 - Part 2: Prompt for the reverse calculation input
+  function startPhase3Input() {
     phase = 32;
-    document.getElementById('phase-label').innerText = "Phase 3B: Linguistic Overwrite";
-    currentQuote = quotesPool[Math.floor(Math.random() * quotesPool.length)];
+    document.getElementById('phase-label').innerText = `Reverse Shuffling (${jammerRound}/2)`;
+    document.getElementById('rasp-instructions').innerHTML = `Type that 4-character string <b style="color:var(--accent);">ENTIRELY BACKWARDS</b>:<br>(No spaces needed)`;
     
-    document.getElementById('rasp-instructions').innerHTML = `Read this quote carefully to clear your audio buffer:<br><br><i style="font-size:16px; color:#E2E8F0;">"${currentQuote.text}"</i><br><br><b style="color:var(--accent);">To continue, type the VERY LAST word of the quote:</b>`;
     document.getElementById('input-container').style.display = "block";
-    document.getElementById('recall-input').placeholder = "Type last word...";
+    document.getElementById('recall-input').placeholder = "Type backwards...";
     document.getElementById('recall-input').value = "";
     document.getElementById('recall-input').focus();
     
-    startTimer(20000, startPhase3C); // 20 seconds to read and verify
-  }
-
-  function generateHardMathProblem() {
-    const num1 = Math.floor(Math.random() * 75) + 15; 
-    const num2 = Math.floor(Math.random() * 75) + 15; 
-    correctMathAnswer = num1 + num2;
-    document.getElementById('rasp-instructions').innerHTML = `Solve to finish wiping short-term memory cache (${mathStreak}/3):<br><b style="font-size:32px; color:white; letter-spacing:1px;">${num1} + ${num2} = ?</b>`;
-  }
-
-  // NEW STEP 3: Downstream Numerical Working Memory Drain
-  function startPhase3C() {
-    phase = 33;
-    document.getElementById('phase-label').innerText = "Phase 3C: Working Memory Drain";
-    generateHardMathProblem();
-    
-    document.getElementById('input-container').style.display = "block";
-    document.getElementById('recall-input').placeholder = "Type math answer...";
-    document.getElementById('recall-input').value = "";
-    document.getElementById('recall-input').focus();
-    
-    startTimer(25000, () => {
-      startPhase4();
+    startTimer(8000, () => {
+      // If they fail to type within 8 seconds, it forces a sequence reset to maintain structural difficulty
+      initSession();
     });
   }
 
@@ -252,34 +235,26 @@
 
   document.getElementById('recall-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-      const inputVal = this.value.trim();
+      const inputVal = this.value.trim().toUpperCase().replace(/\s+/g, '');
 
       if (phase === 15) {
         if (inputVal.length > 2) {
-          customUserAnchor = inputVal;
+          customUserAnchor = this.value.trim();
           startPhase2();
         }
       } else if (phase === 32) {
-        // Validate linguistic verification word
-        const cleanInput = inputVal.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-        if (cleanInput === currentQuote.word) {
+        if (inputVal === expectedReverseString) {
           clearInterval(timerInterval);
-          startPhase3C();
-        } else {
-          this.value = ""; // Force them to type it right to guarantee cognitive engagement
-        }
-      } else if (phase === 33) {
-        if (parseInt(inputVal) === correctMathAnswer) {
-          mathStreak++;
-          this.value = "";
-          if (mathStreak >= 3) {
-            clearInterval(timerInterval);
+          if (jammerRound >= 2) {
             startPhase4();
           } else {
-            generateHardMathProblem();
+            jammerRound++;
+            startPhase3Flash(); // Fire up Round 2 immediately
           }
         } else {
-          this.value = ""; 
+          // Wrong reverse spelling resets the whole setup to punish careless rehearsal strategies
+          this.value = "";
+          initSession();
         }
       } else if (phase === 4) {
         const targetVal = currentCard.name.toLowerCase();
@@ -293,7 +268,7 @@
           phase = 5;
           document.getElementById('target-name').innerText = currentCard.name;
           document.getElementById('phase-label').innerText = "Link Fractured";
-          document.getElementById('rasp-instructions').innerHTML = `You typed: <span style="color:#EF4444;">"${inputVal}"</span>.<br><br>The correct name was <b>${currentCard.name}</b>.<br>Your visual anchor was: <b>"${customUserAnchor}"</b>.<br><br>Study the face and map the name back to that anchor area before continuing.`;
+          document.getElementById('rasp-instructions').innerHTML = `You typed: <span style="color:#EF4444;">"${this.value}"</span>.<br><br>The correct name was <b>${currentCard.name}</b>.<br>Your visual anchor was: <b>"${customUserAnchor}"</b>.<br><br>Re-verify the network mapping before tapping continue.`;
           document.getElementById('action-btn').innerText = "Continue Training";
           document.getElementById('action-btn').style.display = "block";
         }
@@ -310,7 +285,7 @@
     navigator.serviceWorker.register('./sw.js');
   }
 
-  window.onload = initSession;
+  window.onload = generateUSFaceMatrix; window.addEventListener('load', initSession);
 </script>
 </body>
 </html>
