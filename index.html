@@ -33,15 +33,14 @@
       letter-spacing: 2px; 
       color: var(--accent); 
       font-weight: bold; 
+      margin-bottom: 10px;
     }
-    #timer-bar { width: 100%; height: 6px; background: #334155; border-radius: 3px; overflow: hidden; }
-    #timer-fill { width: 100%; height: 100%; background: var(--accent); transition: width 0.1s linear; }
     #display-area { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; margin: 20px 0; }
     #target-image { width: 220px; height: 220px; border-radius: 50%; object-fit: cover; border: 4px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
     #target-name { font-size: 28px; font-weight: 800; margin-top: 20px; text-align: center; }
-    #rasp-instructions { font-size: 14px; color: #94A3B8; text-align: center; max-width: 85%; line-height: 1.4; margin-top: 10px; }
+    #rasp-instructions { font-size: 15px; color: #94A3B8; text-align: center; max-width: 90%; line-height: 1.5; margin-top: 10px; }
     input[type="text"] {
-      width: 80%; padding: 14px; border-radius: 12px; border: 2px solid #334155;
+      width: 85%; padding: 14px; border-radius: 12px; border: 2px solid #334155;
       background: #0F172A; color: white; font-size: 18px; text-align: center; outline: none;
     }
     input[type="text"]:focus { border-color: var(--accent); }
@@ -52,7 +51,7 @@
     }
     .btn:active { transform: scale(0.98); }
     #feedback-zone { display: none; width: 100%; flex-direction: column; align-items: center; }
-    .feedback-btn { width: 100%; padding: 12px; margin: 4px 0; border-radius: 8px; border: none; color: white; font-weight: bold; }
+    .feedback-btn { width: 100%; padding: 12px; margin: 4px 0; border-radius: 8px; border: none; color: white; font-weight: bold; cursor: pointer; }
     .easy { background: #10B981; } .medium { background: #F59E0B; } .hard { background: #EF4444; }
   </style>
 </head>
@@ -60,14 +59,13 @@
 
 <div id="game-container">
   <div class="phase-title" id="phase-label">Initializing...</div>
-  <div id="timer-bar"><div id="timer-fill"></div></div>
 
   <div id="display-area">
     <img id="target-image" src="" alt="Neural Target" style="display:none;">
     <div id="target-name"></div>
-    <div id="rasp-instructions">Preparing tracking metrics...</div>
+    <div id="rasp-instructions">Building face database matrices...</div>
     <div id="input-container" style="display:none; width:100%; text-align:center;">
-      <input type="text" id="recall-input" placeholder="Type..." autocomplete="off" autofocus>
+      <input type="text" id="recall-input" placeholder="Type..." autocomplete="off">
     </div>
   </div>
 
@@ -82,6 +80,7 @@
 </div>
 
 <script>
+  // Comprehensive array mapping the top popular United States first names
   const usNamesM = ["Liam", "Noah", "Oliver", "Elijah", "James", "William", "Benjamin", "Lucas", "Henry", "Alexander", "Mason", "Michael", "Ethan", "Daniel", "Jacob", "Logan", "Jackson", "Levi", "Sebastian", "Mateo", "Jack", "Owen", "Theodore", "Aiden", "Samuel", "Joseph", "John", "David", "Wyatt", "Luke", "Asher", "Carter", "Julian", "Grayson", "Leo", "Jayden", "Gabriel", "Isaac", "Lincoln", "Anthony", "Hudson", "Dylan", "Ezra", "Thomas", "Charles", "Christopher", "Jaxon", "Maverick", "Josiah", "Isaiah", "Andrew", "Elias", "Joshua", "Nathan", "Caleb", "Ryan", "Adrian", "Miles", "Eli", "Nolan", "Christian", "Aaron", "Cameron", "Ezekiel", "Colton", "Luca", "Landon", "Hunter", "Jonathan", "Santiago", "Axel", "Brooks", "Ian", "Jameson", "Cooper", "Angel", "Dominic", "Amari", "Jordan", "Kai", "Nova", "Silas", "Felix", "Victor", "Marcus"];
   const usNamesF = ["Olivia", "Emma", "Charlotte", "Amelia", "Sophia", "Ava", "Isabella", "Mia", "Evelyn", "Harper", "Luna", "Camila", "Gianna", "Elizabeth", "Eleanor", "Ella", "Avery", "Sofia", "Violet", "Aurora", "Hazel", "Aria", "Scarlett", "Naomi", "Ellie", "Claire", "Lily", "Maya", "Nova", "Isla", "Elena", "Zoe", "Stella", "Grace", "Chloe", "Victoria", "Riley", "Aniyah", "Zoey", "Penelope", "Layla", "Aaliyah", "Nora", "Mila", "Hannah", "Lillian", "Addison", "Aubrey", "Natalie", "Leah", "Savannah", "Skyler", "Willow", "Paisley", "Audrey", "Brooklyn", "Bella", "Lucy", "Anna", "Caroline", "Kennedy", "Valentina", "Ruby", "Eva", "Alice", "Sadie", "Natalia", "Gabriella", "Autumn", "Quinn", "Cora", "Jade", "Piper"];
 
@@ -89,18 +88,17 @@
   let currentCard = null;
   let lastCardId = null; 
   let phase = 1; 
-  let timerInterval;
-  let startTime;
   let customUserAnchor = ""; 
   
-  // Cognitive Jammer State Tracking Variables
+  // Cache Wiper variables
   let currentString = "";
-  let expectedReverseString = "";
+  let expectedString = "";
   let jammerRound = 1;
 
   function generateUSFaceMatrix() {
     mockDatabase = [];
     let idCounter = 1;
+    // Generate clean studio headshots paired with names
     for (let i = 0; i < 100; i++) {
       mockDatabase.push({ id: idCounter++, name: usNamesM[i % usNamesM.length], img: `https://randomuser.me/api/portraits/men/${i}.jpg` });
       mockDatabase.push({ id: idCounter++, name: usNamesF[i % usNamesF.length], img: `https://randomuser.me/api/portraits/women/${i}.jpg` });
@@ -117,25 +115,11 @@
     startPhase1();
   }
 
-  function startTimer(durationMs, callback) {
-    clearInterval(timerInterval);
-    let elapsed = 0;
-    const bar = document.getElementById('timer-fill');
-    timerInterval = setInterval(() => {
-      elapsed += 100;
-      let percent = 100 - ((elapsed / durationMs) * 100);
-      bar.style.width = Math.max(percent, 0) + '%';
-      if (elapsed >= durationMs) {
-        clearInterval(timerInterval);
-        callback();
-      }
-    }, 100);
-  }
-
+  // Phase 1: Unlimited scan time to explore the facial canvas
   function startPhase1() {
     phase = 1;
     document.getElementById('input-container').style.display = "none";
-    document.getElementById('phase-label').innerText = "Phase 1: Active Feature Extraction";
+    document.getElementById('phase-label').innerText = "Phase 1: Feature Extraction";
     
     const targetImg = document.getElementById('target-image');
     targetImg.src = currentCard.img;
@@ -143,118 +127,103 @@
     targetImg.style.filter = "none";
     
     document.getElementById('target-name').innerText = "";
-    document.getElementById('rasp-instructions').innerHTML = "Scan this face. Isolate **one** distinct structural feature (e.g., nose shape, eyebrow line, a hair wave).";
-    document.getElementById('action-btn').innerText = "Next";
+    document.getElementById('rasp-instructions').innerHTML = "Take your time to scan this face. Locate **one** highly distinct structural feature (e.g., eye slant, jawline shape, hair parting, lip structure).";
+    document.getElementById('action-btn').innerText = "I Found An Anchor";
     document.getElementById('action-btn').style.display = "block";
-    
-    startTimer(10000, startPhase1B); 
   }
 
+  // Phase 1B: Input text window to explicitly write down the marker
   function startPhase1B() {
     phase = 15; 
-    clearInterval(timerInterval);
     document.getElementById('phase-label').innerText = "Lock Visual Anchor";
-    document.getElementById('rasp-instructions').innerText = "Type the specific feature you isolated:";
+    document.getElementById('rasp-instructions').innerText = "Type the specific feature you isolated (e.g., 'right eyebrow arch', 'pursed lips'):";
     document.getElementById('action-btn').style.display = "none";
     document.getElementById('input-container').style.display = "block";
-    document.getElementById('recall-input').placeholder = "Enter physical anchor...";
+    document.getElementById('recall-input').placeholder = "Press Enter to save...";
     document.getElementById('recall-input').value = "";
     document.getElementById('recall-input').focus();
   }
 
+  // Phase 2: Show the target name and bind it via RASP logic
   function startPhase2() {
     phase = 2;
     document.getElementById('input-container').style.display = "none";
     document.getElementById('phase-label').innerText = "Phase 2: RASP Encoding Loop";
     document.getElementById('target-name').innerText = currentCard.name;
-    document.getElementById('rasp-instructions').innerHTML = `Bind the name <b>${currentCard.name}</b> to your anchor: <span style="color:var(--accent); font-weight:bold;">"${customUserAnchor}"</span>.<br><br><b>R</b>epeat | <b>A</b>ssociate | <b>S</b>peak aloud | <b>P</b>icture it melting together`;
-    
-    startTimer(8000, startPhase3Flash);
+    document.getElementById('rasp-instructions').innerHTML = `Bind the name <b>${currentCard.name}</b> to your anchor: <span style="color:var(--accent); font-weight:bold;">"${customUserAnchor}"</span>.<br><br><b>R</b>epeat | <b>A</b>ssociate | <b>S</b>peak aloud | <b>P</b>icture it melting together.`;
+    document.getElementById('action-btn').innerText = "Begin Cache Wipe";
+    document.getElementById('action-btn').style.display = "block";
   }
 
-  function generateRandomAlphanumeric() {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Removed confusing characters like I, O, 1, 0
+  function generate6CharacterCode() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; 
     let str = "";
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       str += chars.charAt(Math.floor(Math.random() * chars.length)) + " ";
     }
     currentString = str.trim();
-    expectedReverseString = currentString.split(" ").reverse().join("");
+    expectedString = currentString.replace(/\s+/g, '');
   }
 
-  // Phase 3 - Part 1: Flash the alphanumeric sequence
-  function startPhase3Flash() {
-    phase = 31;
+  // Phase 3: Display 6 characters forward to completely flush audio loop mechanisms
+  function startPhase3() {
+    phase = 3;
     document.getElementById('target-image').style.filter = "brightness(0)"; 
     document.getElementById('target-name').innerText = "";
-    document.getElementById('input-container').style.display = "none";
-    document.getElementById('phase-label').innerText = `Phase 3: Cache Wipe (${jammerRound}/2)`;
+    document.getElementById('action-btn').style.display = "none";
+    document.getElementById('phase-label').innerText = `Phase 3: Cognitive Flush (${jammerRound}/2)`;
     
-    generateRandomAlphanumeric();
+    generate6CharacterCode();
     
-    document.getElementById('rasp-instructions').innerHTML = `Commit this string to memory immediately:<br><br><b style="font-size:42px; color:white; letter-spacing:6px;">${currentString}</b>`;
-    
-    startTimer(25000 / 10, startPhase3Input); // Flashes onscreen for exactly 2.5 seconds
-  }
-
-  // Phase 3 - Part 2: Prompt for the reverse calculation input
-  function startPhase3Input() {
-    phase = 32;
-    document.getElementById('phase-label').innerText = `Reverse Shuffling (${jammerRound}/2)`;
-    document.getElementById('rasp-instructions').innerHTML = `Type that 4-character string <b style="color:var(--accent);">ENTIRELY BACKWARDS</b>:<br>(No spaces needed)`;
-    
+    document.getElementById('rasp-instructions').innerHTML = `Type this code exactly as shown to clear short-term rehearsal pathways:<br><br><b style="font-size:36px; color:white; letter-spacing:4px;">${currentString}</b>`;
     document.getElementById('input-container').style.display = "block";
-    document.getElementById('recall-input').placeholder = "Type backwards...";
+    document.getElementById('recall-input').placeholder = "Type code forward...";
     document.getElementById('recall-input').value = "";
     document.getElementById('recall-input').focus();
-    
-    startTimer(8000, () => {
-      // If they fail to type within 8 seconds, it forces a sequence reset to maintain structural difficulty
-      initSession();
-    });
   }
 
+  // Phase 4: Prompt name recall utilizing custom anchor
   function startPhase4() {
     phase = 4;
-    document.getElementById('phase-label').innerText = "Phase 4: Synaptic Retrieval";
     document.getElementById('target-image').style.filter = "none";
+    document.getElementById('phase-label').innerText = "Phase 4: Synaptic Retrieval";
     document.getElementById('rasp-instructions').innerHTML = `Recall the name linked to your anchor: <span style="color:var(--accent); font-weight:bold;">"${customUserAnchor}"</span>`;
     document.getElementById('input-container').style.display = "block";
     document.getElementById('recall-input').placeholder = "Type first name...";
     document.getElementById('recall-input').value = "";
     document.getElementById('recall-input').focus();
-    startTime = Date.now();
   }
 
+  // Universal button navigator for non-input phases (Phases 1, 2, and 5)
   function advanceStep() {
     if (phase === 1) startPhase1B();
+    else if (phase === 2) startPhase3();
     else if (phase === 5) {
       initSession();
     }
   }
 
+  // Universal text input event controller
   document.getElementById('recall-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-      const inputVal = this.value.trim().toUpperCase().replace(/\s+/g, '');
+      const inputVal = this.value.trim();
 
       if (phase === 15) {
-        if (inputVal.length > 2) {
+        if (inputVal.length > 1) {
           customUserAnchor = this.value.trim();
           startPhase2();
         }
-      } else if (phase === 32) {
-        if (inputVal === expectedReverseString) {
-          clearInterval(timerInterval);
+      } else if (phase === 3) {
+        const cleanInput = inputVal.toUpperCase().replace(/\s+/g, '');
+        if (cleanInput === expectedString) {
           if (jammerRound >= 2) {
             startPhase4();
           } else {
             jammerRound++;
-            startPhase3Flash(); // Fire up Round 2 immediately
+            startPhase3(); // Start second round of 6 characters
           }
         } else {
-          // Wrong reverse spelling resets the whole setup to punish careless rehearsal strategies
-          this.value = "";
-          initSession();
+          this.value = ""; // Clears wrong characters, lets you re-type cleanly
         }
       } else if (phase === 4) {
         const targetVal = currentCard.name.toLowerCase();
@@ -268,7 +237,7 @@
           phase = 5;
           document.getElementById('target-name').innerText = currentCard.name;
           document.getElementById('phase-label').innerText = "Link Fractured";
-          document.getElementById('rasp-instructions').innerHTML = `You typed: <span style="color:#EF4444;">"${this.value}"</span>.<br><br>The correct name was <b>${currentCard.name}</b>.<br>Your visual anchor was: <b>"${customUserAnchor}"</b>.<br><br>Re-verify the network mapping before tapping continue.`;
+          document.getElementById('rasp-instructions').innerHTML = `You typed: <span style="color:#EF4444;">"${this.value}"</span>.<br><br>The correct name was <b>${currentCard.name}</b>.<br>Your visual anchor was: <b>"${customUserAnchor}"</b>.<br><br>Intentionally study the face and map the name back to that anchor point before continuing.`;
           document.getElementById('action-btn').innerText = "Continue Training";
           document.getElementById('action-btn').style.display = "block";
         }
@@ -285,7 +254,8 @@
     navigator.serviceWorker.register('./sw.js');
   }
 
-  window.onload = generateUSFaceMatrix; window.addEventListener('load', initSession);
+  window.onload = generateUSFaceMatrix; 
+  window.addEventListener('load', initSession);
 </script>
 </body>
 </html>
