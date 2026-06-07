@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Nomina Neuro-Trainer</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root {
+      --bg: #0F172A;
+      --card-bg: #1E293B;
+      --accent: #38BDF8;
+      --text: #F8FAFC;
+    }
+    body {
+      margin: 0; padding: 0; background-color: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; min-height: 100vh;
+      overflow: hidden; user-select: none;
+    }
+    #game-container {
+      width: 90vw; max-width: 420px; height: 85vh;
+      background: var(--card-bg); border-radius: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: space-between; padding: 24px; box-sizing: border-box;
+      position: relative;
+    }
+    .phase-title { 
+      font-size: 14px; 
+      text-transform: uppercase; 
+      letter-spacing: 2px; /* Fixed from 'tracking' */
+      color: var(--accent); 
+      font-weight: bold; 
+    }
+    #timer-bar { width: 100%; height: 6px; background: #334155; border-radius: 3px; overflow: hidden; }
+    #timer-fill { width: 100%; height: 100%; background: var(--accent); transition: width 0.1s linear; }
+    #display-area { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; margin: 20px 0; }
+    #target-image { width: 220px; height: 220px; border-radius: 50%; object-fit: cover; border: 4px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+    #target-name { font-size: 28px; font-weight: 800; margin-top: 20px; text-align: center; }
+    #rasp-instructions { font-size: 14px; color: #94A3B8; text-align: center; max-width: 85%; line-height: 1.4; margin-top: 10px; }
+    input[type="text"] {
+      width: 80%; padding: 14px; border-radius: 12px; border: 2px solid #334155;
+      background: #0F172A; color: white; font-size: 18px; text-align: center; outline: none;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    .btn {
+      width: 85%; padding: 16px; border-radius: 14px; border: none;
+      background: var(--accent); color: #0F172A; font-size: 16px; font-weight: bold;
+      cursor: pointer; transition: transform 0.1s ease; margin-bottom: 10px;
+    }
+    .btn:active { transform: scale(0.98); }
+    #feedback-zone { display: none; width: 100%; flex-direction: column; align-items: center; }
+    .feedback-btn { width: 100%; padding: 12px; margin: 4px 0; border-radius: 8px; border: none; color: white; font-weight: bold; }
+    .easy { background: #10B981; } .medium { background: #F59E0B; } .hard { background: #EF4444; }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <div class="phase-title" id="phase-label">Phase 1: Anchor Visuals</div>
+  <div id="timer-bar"><div id="timer-fill"></div></div>
+
+  <div id="display-area">
+    <img id="target-image" src="" alt="Neural Target">
+    <div id="target-name"></div>
+    <div id="rasp-instructions"></div>
+    <div id="input-container" style="display:none; width:100%; text-align:center;">
+      <input type="text" id="recall-input" placeholder="Type name..." autocomplete="off" autofocus>
+    </div>
+  </div>
+
+  <button class="btn" id="action-btn" onclick="advanceStep()">Next</button>
+  
+  <div id="feedback-zone">
+    <div style="font-size:12px; margin-bottom:8px; color:#94A3B8;">Rate your memory access speed:</div>
+    <button class="feedback-btn easy" onclick="submitFeedback(5)">Instant / Clear</button>
+    <button class="feedback-btn medium" onclick="submitFeedback(3)">Took Mental Effort</button>
+    <button class="feedback-btn hard" onclick="submitFeedback(1)">Total Blackout</button>
+  </div>
+</div>
+
+<script>
+  const mockDatabase = [
+    { id: 1, name: "Leo", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80", hint: "Look at the sharp, angular jawline. Think: Leo the Lion's sharp jaw." },
+    { id: 2, name: "Maya", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80", hint: "Focus on the bright, wide eyes. Think: Maya's wide-angle camera eyes." },
+    { id: 3, name: "Caleb", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80", hint: "Observe the heavy, dark eyebrows. Think: Thick cables over his eyes." }
+  ];
+
+  let currentCard = null;
+  let phase = 1; 
+  let timerInterval;
+  let startTime;
+  let correctMathAnswer = 0;
+
+  function initSession() {
+    currentCard = mockDatabase[Math.floor(Math.random() * mockDatabase.length)];
+    startPhase1();
+  }
+
+  function startTimer(durationMs, callback) {
+    clearInterval(timerInterval);
+    let elapsed = 0;
+    const bar = document.getElementById('timer-fill');
+    timerInterval = setInterval(() => {
+      elapsed += 100;
+      let percent = 100 - ((elapsed / durationMs) * 100);
+      bar.style.width = Math.max(percent, 0) + '%';
+      if (elapsed >= durationMs) {
+        clearInterval(timerInterval);
+        callback();
+      }
+    }, 100);
+  }
+
+  function startPhase1() {
+    phase = 1;
+    document.getElementById('input-container').style.display = "none";
+    document.getElementById('phase-label').innerText = "Phase 1: Pre-Exposure Anchor";
+    document.getElementById('target-image').src = currentCard.img;
+    document.getElementById('target-image').style.filter = "none";
+    document.getElementById('target-name').innerText = "";
+    document.getElementById('rasp-instructions').innerText = currentCard.hint;
+    document.getElementById('action-btn').innerText = "Next";
+    document.getElementById('action-btn').style.display = "block";
+    
+    startTimer(5000, startPhase2);
+  }
+
+  function startPhase2() {
+    phase = 2;
+    document.getElementById('phase-label').innerText = "Phase 2: RASP Encoding Loop";
+    document.getElementById('target-name').innerText = currentCard.name;
+    document.getElementById('rasp-instructions').innerHTML = "<b>R</b>epeat once | <b>A</b>ssociate with the hint | <b>S</b>peak aloud | <b>P</b>icture it burning into the image";
+    
+    startTimer(8000, startPhase3);
+  }
+
+  function startPhase3() {
+    phase = 3;
+    document.getElementById('phase-label').innerText = "Phase 3: Working Memory Wiper";
+    document.getElementById('target-image').style.filter = "brightness(0)"; 
+    document.getElementById('target-name').innerText = "";
+    
+    const num1 = Math.floor(Math.random() * 8) + 2;
+    const num2 = Math.floor(Math.random() * 8) + 2;
+    correctMathAnswer = num1 + num2;
+
+    document.getElementById('rasp-instructions').innerHTML = `Solve this to clear short-term echo:<br><b style="font-size:24px; color:white;">${num1} + ${num2} = ?</b>`;
+    document.getElementById('action-btn').style.display = "none";
+    document.getElementById('input-container').style.display = "block";
+    document.getElementById('recall-input').placeholder = "Type math answer...";
+    document.getElementById('recall-input').value = "";
+    document.getElementById('recall-input').focus();
+    
+    startTimer(6000, () => {
+      startPhase4();
+    });
+  }
+
+  function startPhase4() {
+    phase = 4;
+    document.getElementById('phase-label').innerText = "Phase 4: Active Retrieval Challenge";
+    document.getElementById('target-image').style.filter = "none";
+    document.getElementById('rasp-instructions').innerText = "Recall the first name based purely on your visual link:";
+    document.getElementById('input-container').style.display = "block";
+    document.getElementById('recall-input').placeholder = "Type name...";
+    document.getElementById('recall-input').value = "";
+    document.getElementById('recall-input').focus();
+    startTime = Date.now();
+  }
+
+  function advanceStep() {
+    if (phase === 1) startPhase2();
+    else if (phase === 2) startPhase3();
+    else if (phase === 5) { // Handled the new Review state continuation smoothly
+      initSession();
+    }
+  }
+
+  document.getElementById('recall-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      const inputVal = this.value.trim().toLowerCase();
+
+      if (phase === 3) {
+        if (parseInt(inputVal) === correctMathAnswer) {
+          clearInterval(timerInterval);
+          startPhase4();
+        } else {
+          this.value = ""; 
+        }
+      } else if (phase === 4) {
+        const targetVal = currentCard.name.toLowerCase();
+        document.getElementById('input-container').style.display = "none";
+
+        if (inputVal === targetVal) {
+          document.getElementById('target-name').innerText = currentCard.name;
+          document.getElementById('phase-label').innerText = "Success: Synaptic Link Confirmed";
+          document.getElementById('feedback-zone').style.display = "flex";
+        } else {
+          // FIXED: Created a safe review phase (Phase 5) so errors don't instantly flash away
+          phase = 5;
+          document.getElementById('target-name').innerText = currentCard.name;
+          document.getElementById('phase-label').innerText = "Link Failed (15% Optimization Rule)";
+          document.getElementById('rasp-instructions').innerHTML = `You wrote: <span style="color:#EF4444;">"${this.value}"</span>.<br><br>Take a moment to re-anchor the name <b>${currentCard.name}</b> to the physical traits described below:<br><br>${currentCard.hint}`;
+          document.getElementById('action-btn').innerText = "Continue Training";
+          document.getElementById('action-btn').style.display = "block";
+        }
+      }
+    }
+  });
+
+  function submitFeedback(qualityScore) {
+    document.getElementById('feedback-zone').style.display = "none";
+    initSession();
+  }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
+
+  window.onload = initSession;
+</script>
+</body>
+</html>
