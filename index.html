@@ -44,7 +44,16 @@
       border-radius: 20px;
     }
     #display-area { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; margin: 15px 0; min-height: 50%; }
-    #target-image { width: 220px; height: 220px; border-radius: 50%; object-fit: cover; border: 4px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+    #target-image { 
+      width: 220px; 
+      height: 220px; 
+      border-radius: 50%; 
+      object-fit: cover; 
+      border: 4px solid #334155; 
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: opacity 0.15s ease-in-out;
+    }
     #target-name { font-size: 28px; font-weight: 800; margin-top: 15px; text-align: center; }
     #rasp-instructions { font-size: 15px; color: #94A3B8; text-align: center; max-width: 90%; line-height: 1.5; margin-top: 10px; }
     
@@ -74,7 +83,7 @@
   </div>
 
   <div id="display-area">
-    <img id="target-image" src="" alt="Neural Target" style="display:none;">
+    <img id="target-image" src="" alt="Neural Target" onload="this.style.opacity='1';">
     <div id="target-name"></div>
     <div id="rasp-instructions">Compiling US demographic naming models...</div>
     
@@ -98,13 +107,11 @@
   const usNamesF = ["Olivia", "Emma", "Charlotte", "Amelia", "Sophia", "Ava", "Isabella", "Mia", "Evelyn", "Harper", "Luna", "Camila", "Gianna", "Elizabeth", "Eleanor", "Ella", "Avery", "Sofia", "Violet", "Aurora", "Hazel", "Aria", "Scarlett", "Naomi", "Ellie", "Claire", "Lily", "Maya", "Nova", "Isla", "Elena", "Zoe", "Stella", "Grace", "Chloe", "Victoria", "Riley", "Aniyah", "Zoey", "Penelope", "Layla", "Aaliyah", "Nora", "Mila", "Hannah", "Lillian", "Addison", "Aubrey", "Natalie", "Leah", "Savannah", "Skyler", "Willow", "Paisley", "Audrey", "Brooklyn", "Bella", "Lucy", "Anna", "Caroline", "Kennedy", "Valentina", "Ruby", "Eva", "Alice", "Sadie", "Natalia", "Gabriella", "Autumn", "Quinn", "Cora", "Jade", "Piper"];
 
   let masterFacePool = [];
-  
-  // Batch Management States
-  let currentBatchCards = [];  // Holds the 10 cards being learned
-  let testingBatchPool = [];   // Holds the 5 cards selected for evaluation
+  let currentBatchCards = [];  
+  let testingBatchPool = [];   
   let currentCard = null;
   let currentBatchIndex = 0;   
-  let phase = 1;               // 1: Scan, 15: Type Anchor, 2: Encode Name, 4: Recall, 5: Review
+  let phase = 1;               
   let tempAnchorStorage = "";
 
   function generateUSFaceMatrix() {
@@ -116,7 +123,6 @@
     }
   }
 
-  // Assembles 10 fresh, completely unique faces for the encoding phase
   function startNewBatchIteration() {
     if (masterFacePool.length === 0) generateUSFaceMatrix();
     
@@ -124,10 +130,8 @@
     testingBatchPool = [];
     currentBatchIndex = 0;
     
-    // Pick 10 random cards from the pool
     let shuffled = [...masterFacePool].sort(() => Math.random() - 0.5);
     for(let i = 0; i < 10; i++) {
-      // Deep clone object to ensure clean anchor overwrites per batch run
       currentBatchCards.push({ ...shuffled[i] }); 
     }
     
@@ -140,24 +144,21 @@
       document.getElementById('batch-counter').innerText = `${currentBatchIndex + 1} / 10`;
       startPhase1();
     } else {
-      // All 10 cards encoded. Select 5 random cards for testing.
       document.getElementById('batch-counter').innerText = "TEST MODE";
       testingBatchPool = [...currentBatchCards].sort(() => Math.random() - 0.5).slice(0, 5);
-      currentBatchIndex = 0; // Reset counter to track test completion
+      currentBatchIndex = 0; 
       loadNextTestingCard();
     }
   }
 
-  // Step 1: Scan face
   function startPhase1() {
     phase = 1;
     document.getElementById('input-container').style.display = "none";
     document.getElementById('phase-label').innerText = "1. Feature Scan";
     
     const targetImg = document.getElementById('target-image');
+    targetImg.style.opacity = "0"; // Temporarily hide image until source loads fully
     targetImg.src = currentCard.img;
-    targetImg.style.display = "block";
-    targetImg.style.filter = "none";
     
     document.getElementById('target-name').innerText = "";
     document.getElementById('rasp-instructions').innerHTML = "Scan this profile. Isolate **one** highly distinct physical anchor point.";
@@ -165,19 +166,19 @@
     document.getElementById('action-btn').style.display = "block";
   }
 
-  // Step 1B: Input the feature to lock it in
   function startPhase1B() {
     phase = 15; 
     document.getElementById('phase-label').innerText = "Lock Anchor Tag";
     document.getElementById('rasp-instructions').innerText = "Type the physical feature you isolated:";
     document.getElementById('action-btn').style.display = "none";
     document.getElementById('input-container').style.display = "block";
-    document.getElementById('recall-input').placeholder = "Press Enter to save...";
-    document.getElementById('recall-input').value = "";
-    document.getElementById('recall-input').focus();
+    
+    const recallInput = document.getElementById('recall-input');
+    recallInput.placeholder = "Press Enter to save...";
+    recallInput.value = "";
+    recallInput.focus();
   }
 
-  // Step 2: Show name and complete the RASP link mapping
   function startPhase2() {
     phase = 2;
     document.getElementById('input-container').style.display = "none";
@@ -188,37 +189,38 @@
     document.getElementById('action-btn').style.display = "block";
   }
 
-  /* --- TESTING INTERFACE OPERATIONS --- */
-
   function loadNextTestingCard() {
     if (currentBatchIndex < 5) {
       currentCard = testingBatchPool[currentBatchIndex];
       document.getElementById('batch-counter').innerText = `Test: ${currentBatchIndex + 1} / 5`;
       startPhase4Test();
     } else {
-      // 5-card test complete. Clear variables and start next block.
       document.getElementById('phase-label').innerText = "Batch Complete";
-      document.getElementById('target-image').style.display = "none";
+      document.getElementById('target-image').style.opacity = "0";
       document.getElementById('target-name').innerText = "Session Synced";
       document.getElementById('rasp-instructions').innerHTML = "You have completed this batch block. Click below to compile a fresh set of 10 profiles.";
       document.getElementById('action-btn').innerText = "Load Next 10 Faces";
       document.getElementById('action-btn').style.display = "block";
-      phase = 6; // Fresh initialization routing state
+      phase = 6; 
     }
   }
 
   function startPhase4Test() {
     phase = 4;
-    document.getElementById('target-image').style.display = "block";
-    document.getElementById('target-image').style.filter = "none";
+    const targetImg = document.getElementById('target-image');
+    targetImg.style.opacity = "0";
+    targetImg.src = currentCard.img;
+    
     document.getElementById('target-name').innerText = "";
     document.getElementById('phase-label').innerText = "Synaptic Retrieval Test";
     document.getElementById('rasp-instructions').innerHTML = `Recall the identity linked to this anchor:<br><span style="color:var(--accent); font-weight:bold; font-size:18px;">"${currentCard.anchor}"</span>`;
     document.getElementById('action-btn').style.display = "none";
     document.getElementById('input-container').style.display = "block";
-    document.getElementById('recall-input').placeholder = "Type first name...";
-    document.getElementById('recall-input').value = "";
-    document.getElementById('recall-input').focus();
+    
+    const recallInput = document.getElementById('recall-input');
+    recallInput.placeholder = "Type first name...";
+    recallInput.value = "";
+    recallInput.focus();
   }
 
   function evaluateTestSubmission(inputString) {
@@ -230,7 +232,7 @@
       document.getElementById('phase-label').innerText = "Link Verified";
       document.getElementById('feedback-zone').style.display = "flex";
     } else {
-      phase = 5; // Error Correction Review Phase
+      phase = 5; 
       document.getElementById('target-name').innerText = currentCard.name;
       document.getElementById('phase-label').innerText = "Link Fractured (15% Rule)";
       document.getElementById('rasp-instructions').innerHTML = `You typed: <span style="color:#EF4444;">"${inputString || "Empty Entry"}"</span>.<br><br>The correct profile target was <b>${currentCard.name}</b>.<br>Your custom anchor text was: <b>"${currentCard.anchor}"</b>.<br><br>Re-examine the profile and re-map the identity before proceeding.`;
@@ -261,13 +263,15 @@
     loadNextTestingCard();
   }
 
-  // Text Enter evaluation router
   document.getElementById('recall-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
+      // FIXED: Forces Android OS soft-keyboard to drop immediately upon clicking "Enter"
+      this.blur(); 
+      
       const val = this.value.trim();
       if (phase === 15) {
         if (val.length > 1) {
-          currentCard.anchor = val; // Save anchor into active card tracking instance
+          currentCard.anchor = val; 
           startPhase2();
         }
       } else if (phase === 4) {
