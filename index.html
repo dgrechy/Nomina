@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Nomina Matrix Trainer</title>
+  <title>Nomina Batch Trainer</title>
   <link rel="manifest" href="manifest.json">
   <style>
     :root {
@@ -33,11 +33,18 @@
       letter-spacing: 2px; 
       color: var(--accent); 
       font-weight: bold; 
+      margin-bottom: 10px;
     }
-    #timer-bar { width: 100%; height: 6px; background: #334155; border-radius: 3px; overflow: hidden; width: 100%; }
-    #timer-fill { width: 100%; height: 100%; background: var(--accent); transition: width 0.1s linear; }
+    #batch-counter {
+      font-size: 12px;
+      color: #94A3B8;
+      font-weight: 600;
+      background: #0F172A;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
     #display-area { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; margin: 15px 0; min-height: 50%; }
-    #target-image { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 4px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+    #target-image { width: 220px; height: 220px; border-radius: 50%; object-fit: cover; border: 4px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
     #target-name { font-size: 28px; font-weight: 800; margin-top: 15px; text-align: center; }
     #rasp-instructions { font-size: 15px; color: #94A3B8; text-align: center; max-width: 90%; line-height: 1.5; margin-top: 10px; }
     
@@ -46,32 +53,6 @@
       background: #0F172A; color: white; font-size: 18px; text-align: center; outline: none;
     }
     input[type="text"]:focus { border-color: var(--accent); }
-    
-    /* Multiple Choice Matrix Layout */
-    #choices-container {
-      display: none;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      width: 100%;
-      margin-top: 10px;
-    }
-    .choice-btn {
-      padding: 14px 8px;
-      background: #0F172A;
-      border: 2px solid #334155;
-      color: #F3F4F6;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.1s ease;
-    }
-    .choice-btn:active {
-      background: var(--accent);
-      color: #0F172A;
-      border-color: var(--accent);
-    }
 
     .btn {
       width: 85%; padding: 16px; border-radius: 14px; border: none;
@@ -87,19 +68,19 @@
 <body>
 
 <div id="game-container">
-  <div class="phase-title" id="phase-label">Initializing...</div>
-  <div id="timer-bar"><div id="timer-fill"></div></div>
+  <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+    <div class="phase-title" id="phase-label">Initializing...</div>
+    <div id="batch-counter">0 / 10</div>
+  </div>
 
   <div id="display-area">
     <img id="target-image" src="" alt="Neural Target" style="display:none;">
     <div id="target-name"></div>
-    <div id="rasp-instructions">Compiling system assets...</div>
+    <div id="rasp-instructions">Compiling US demographic naming models...</div>
     
     <div id="input-container" style="display:none; width:100%; text-align:center; margin-top:15px;">
       <input type="text" id="recall-input" placeholder="Type..." autocomplete="off">
     </div>
-
-    <div id="choices-container"></div>
   </div>
 
   <button class="btn" id="action-btn" onclick="advanceStep()" style="display:none;">Next</button>
@@ -116,54 +97,62 @@
   const usNamesM = ["Liam", "Noah", "Oliver", "Elijah", "James", "William", "Benjamin", "Lucas", "Henry", "Alexander", "Mason", "Michael", "Ethan", "Daniel", "Jacob", "Logan", "Jackson", "Levi", "Sebastian", "Mateo", "Jack", "Owen", "Theodore", "Aiden", "Samuel", "Joseph", "John", "David", "Wyatt", "Luke", "Asher", "Carter", "Julian", "Grayson", "Leo", "Jayden", "Gabriel", "Isaac", "Lincoln", "Anthony", "Hudson", "Dylan", "Ezra", "Thomas", "Charles", "Christopher", "Jaxon", "Maverick", "Josiah", "Isaiah", "Andrew", "Elias", "Joshua", "Nathan", "Caleb", "Ryan", "Adrian", "Miles", "Eli", "Nolan", "Christian", "Aaron", "Cameron", "Ezekiel", "Colton", "Luca", "Landon", "Hunter", "Jonathan", "Santiago", "Axel", "Brooks", "Ian", "Jameson", "Cooper", "Angel", "Dominic", "Amari", "Jordan", "Kai", "Nova", "Silas", "Felix", "Victor", "Marcus"];
   const usNamesF = ["Olivia", "Emma", "Charlotte", "Amelia", "Sophia", "Ava", "Isabella", "Mia", "Evelyn", "Harper", "Luna", "Camila", "Gianna", "Elizabeth", "Eleanor", "Ella", "Avery", "Sofia", "Violet", "Aurora", "Hazel", "Aria", "Scarlett", "Naomi", "Ellie", "Claire", "Lily", "Maya", "Nova", "Isla", "Elena", "Zoe", "Stella", "Grace", "Chloe", "Victoria", "Riley", "Aniyah", "Zoey", "Penelope", "Layla", "Aaliyah", "Nora", "Mila", "Hannah", "Lillian", "Addison", "Aubrey", "Natalie", "Leah", "Savannah", "Skyler", "Willow", "Paisley", "Audrey", "Brooklyn", "Bella", "Lucy", "Anna", "Caroline", "Kennedy", "Valentina", "Ruby", "Eva", "Alice", "Sadie", "Natalia", "Gabriella", "Autumn", "Quinn", "Cora", "Jade", "Piper"];
 
-  let mockDatabase = [];
-  let currentCard = null;
-  let lastCardId = null; 
-  let phase = 1; 
-  let timerInterval;
-  let customUserAnchor = ""; 
+  let masterFacePool = [];
   
-  let currentCodeRaw = "";
-  let expectedReverseCode = "";
+  // Batch Management States
+  let currentBatchCards = [];  // Holds the 10 cards being learned
+  let testingBatchPool = [];   // Holds the 5 cards selected for evaluation
+  let currentCard = null;
+  let currentBatchIndex = 0;   
+  let phase = 1;               // 1: Scan, 15: Type Anchor, 2: Encode Name, 4: Recall, 5: Review
+  let tempAnchorStorage = "";
 
   function generateUSFaceMatrix() {
-    mockDatabase = [];
+    masterFacePool = [];
     let idCounter = 1;
-    for (let i = 0; i < 100; i++) {
-      mockDatabase.push({ id: idCounter++, name: usNamesM[i % usNamesM.length], img: `https://randomuser.me/api/portraits/men/${i}.jpg` });
-      mockDatabase.push({ id: idCounter++, name: usNamesF[i % usNamesF.length], img: `https://randomuser.me/api/portraits/women/${i}.jpg` });
+    for (let i = 0; i < 120; i++) {
+      masterFacePool.push({ id: idCounter++, name: usNamesM[i % usNamesM.length], img: `https://randomuser.me/api/portraits/men/${i}.jpg`, anchor: "" });
+      masterFacePool.push({ id: idCounter++, name: usNamesF[i % usNamesF.length], img: `https://randomuser.me/api/portraits/women/${i}.jpg`, anchor: "" });
     }
   }
 
-  function initSession() {
-    if (mockDatabase.length === 0) generateUSFaceMatrix();
-    let pool = mockDatabase.filter(card => card.id !== lastCardId);
-    currentCard = pool[Math.floor(Math.random() * pool.length)];
-    lastCardId = currentCard.id; 
-    customUserAnchor = "";
-    startPhase1();
+  // Assembles 10 fresh, completely unique faces for the encoding phase
+  function startNewBatchIteration() {
+    if (masterFacePool.length === 0) generateUSFaceMatrix();
+    
+    currentBatchCards = [];
+    testingBatchPool = [];
+    currentBatchIndex = 0;
+    
+    // Pick 10 random cards from the pool
+    let shuffled = [...masterFacePool].sort(() => Math.random() - 0.5);
+    for(let i = 0; i < 10; i++) {
+      // Deep clone object to ensure clean anchor overwrites per batch run
+      currentBatchCards.push({ ...shuffled[i] }); 
+    }
+    
+    loadNextEncodingCard();
   }
 
-  function startTimer(durationMs, callback) {
-    clearInterval(timerInterval);
-    let elapsed = 0;
-    const bar = document.getElementById('timer-fill');
-    timerInterval = setInterval(() => {
-      elapsed += 100;
-      let percent = 100 - ((elapsed / durationMs) * 100);
-      bar.style.width = Math.max(percent, 0) + '%';
-      if (elapsed >= durationMs) {
-        clearInterval(timerInterval);
-        callback();
-      }
-    }, 100);
+  function loadNextEncodingCard() {
+    if (currentBatchIndex < 10) {
+      currentCard = currentBatchCards[currentBatchIndex];
+      document.getElementById('batch-counter').innerText = `${currentBatchIndex + 1} / 10`;
+      startPhase1();
+    } else {
+      // All 10 cards encoded. Select 5 random cards for testing.
+      document.getElementById('batch-counter').innerText = "TEST MODE";
+      testingBatchPool = [...currentBatchCards].sort(() => Math.random() - 0.5).slice(0, 5);
+      currentBatchIndex = 0; // Reset counter to track test completion
+      loadNextTestingCard();
+    }
   }
 
+  // Step 1: Scan face
   function startPhase1() {
     phase = 1;
     document.getElementById('input-container').style.display = "none";
-    document.getElementById('choices-container').style.display = "none";
-    document.getElementById('phase-label').innerText = "Phase 1: Feature Extraction";
+    document.getElementById('phase-label').innerText = "1. Feature Scan";
     
     const targetImg = document.getElementById('target-image');
     targetImg.src = currentCard.img;
@@ -171,18 +160,16 @@
     targetImg.style.filter = "none";
     
     document.getElementById('target-name').innerText = "";
-    document.getElementById('rasp-instructions').innerHTML = "Scan the face profile. Locate **one** highly distinct physical anchor point.";
+    document.getElementById('rasp-instructions').innerHTML = "Scan this profile. Isolate **one** highly distinct physical anchor point.";
     document.getElementById('action-btn').innerText = "I Have Found An Anchor";
     document.getElementById('action-btn').style.display = "block";
-    
-    startTimer(10000, startPhase1B); // 10s strict window to evaluate shapes
   }
 
+  // Step 1B: Input the feature to lock it in
   function startPhase1B() {
     phase = 15; 
-    clearInterval(timerInterval);
-    document.getElementById('phase-label').innerText = "Lock Visual Anchor";
-    document.getElementById('rasp-instructions').innerText = "Type the specific feature you isolated:";
+    document.getElementById('phase-label').innerText = "Lock Anchor Tag";
+    document.getElementById('rasp-instructions').innerText = "Type the physical feature you isolated:";
     document.getElementById('action-btn').style.display = "none";
     document.getElementById('input-container').style.display = "block";
     document.getElementById('recall-input').placeholder = "Press Enter to save...";
@@ -190,181 +177,110 @@
     document.getElementById('recall-input').focus();
   }
 
+  // Step 2: Show name and complete the RASP link mapping
   function startPhase2() {
     phase = 2;
     document.getElementById('input-container').style.display = "none";
-    document.getElementById('phase-label').innerText = "Phase 2: RASP Encoding Loop";
+    document.getElementById('phase-label').innerText = "2. Bind Name Target";
     document.getElementById('target-name').innerText = currentCard.name;
-    document.getElementById('rasp-instructions').innerHTML = `Bind the name <b>${currentCard.name}</b> to your anchor: <span style="color:var(--accent); font-weight:bold;">"${customUserAnchor}"</span>.<br><br><b>R</b>epeat | <b>A</b>ssociate | <b>S</b>peak aloud | <b>P</b>icture connection.`;
-    document.getElementById('action-btn').style.display = "none";
-    
-    startTimer(8000, startPhase3Flash); // 8s encoding run before flash execution
-  }
-
-  function generate8ElementCode() {
-    const pool = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let codeArr = [];
-    for(let i=0; i<8; i++) {
-      codeArr.push(pool.charAt(Math.floor(Math.random() * pool.length)));
-    }
-    currentCodeRaw = codeArr.join('');
-    expectedReverseCode = codeArr.reverse().join('');
-  }
-
-  function buildSubtleDistractors(correctRev) {
-    let list = [correctRev];
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    
-    while(list.length < 6) {
-      let mut = correctRev.split('');
-      let coin = Math.floor(Math.random() * 3);
-      
-      if(coin === 0) {
-        // Subtle error 1: Swap adjacent characters
-        let idx = Math.floor(Math.random() * 7);
-        let tmp = mut[idx]; mut[idx] = mut[idx+1]; mut[idx+1] = tmp;
-      } else if(coin === 1) {
-        // Subtle error 2: Swap ends
-        let tmp = mut[0]; mut[0] = mut[7]; mut[7] = tmp;
-      } else {
-        // Subtle error 3: Mutate a random character entry
-        let idx = Math.floor(Math.random() * 8);
-        mut[idx] = chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      
-      let res = mut.join('');
-      if(!list.includes(res)) list.push(res);
-    }
-    return list.sort(() => Math.random() - 0.5);
-  }
-
-  function startPhase3Flash() {
-    phase = 31;
-    document.getElementById('target-image').style.display = "none";
-    document.getElementById('target-name').innerText = "";
-    document.getElementById('phase-label').innerText = "Phase 3A: Flash Matrix Core";
-    
-    generate8ElementCode();
-    
-    // Spaced layout for reading legibility
-    let displayStr = currentCodeRaw.split('').join(' ');
-    document.getElementById('rasp-instructions').innerHTML = `Memorize this configuration now:<br><br><b style="font-size:38px; color:white; letter-spacing:4px;">${displayStr}</b>`;
-    
-    startTimer(4500, startPhase3Choices); // Flashes for 4.5 seconds
-  }
-
-  function startPhase3Choices() {
-    phase = 32;
-    document.getElementById('phase-label').innerText = "Phase 3B: Identify REVERSE Code";
-    document.getElementById('rasp-instructions').innerText = "Select the exact sequence reversed:";
-    
-    const container = document.getElementById('choices-container');
-    container.innerHTML = "";
-    container.style.display = "grid";
-    
-    let variants = buildSubtleDistractors(expectedReverseCode);
-    
-    variants.forEach(code => {
-      let b = document.createElement('button');
-      b.className = "choice-btn";
-      b.innerText = code;
-      b.onclick = () => verifyMatrixSelection(code);
-      container.appendChild(b);
-    });
-    
-    startTimer(12000, handleMatrixFailure); // 12 seconds to make your decision
-  }
-
-  function verifyMatrixSelection(selectedString) {
-    clearInterval(timerInterval);
-    if(selectedString === expectedReverseCode) {
-      document.getElementById('choices-container').style.display = "none";
-      startPhase4();
-    } else {
-      handleMatrixFailure();
-    }
-  }
-
-  function handleMatrixFailure() {
-    clearInterval(timerInterval);
-    document.getElementById('choices-container').style.display = "none";
-    phase = 5;
-    document.getElementById('target-image').style.display = "block";
-    document.getElementById('target-image').style.filter = "none";
-    document.getElementById('target-name').innerText = currentCard.name;
-    document.getElementById('phase-label').innerText = "Flush Verification Broken";
-    document.getElementById('rasp-instructions').innerHTML = `You selected an incorrect option or ran out of time.<br><br>The target code was: <b style="color:white;">${currentCodeRaw}</b><br>The correct inverse was: <b style="color:var(--accent);">${expectedReverseCode}</b>.<br><br>The cycle has been disrupted. Review the face profile and restart.`;
-    document.getElementById('action-btn').innerText = "Restart Matrix Cycle";
+    document.getElementById('rasp-instructions').innerHTML = `Bind the name <b>${currentCard.name}</b> to your anchor: <span style="color:var(--accent); font-weight:bold;">"${currentCard.anchor}"</span>.<br><br>Execute RASP protocol mapping, then click Next to queue the next profile entry.`;
+    document.getElementById('action-btn').innerText = "Queue Next Profile";
     document.getElementById('action-btn').style.display = "block";
   }
 
-  function startPhase4() {
+  /* --- TESTING INTERFACE OPERATIONS --- */
+
+  function loadNextTestingCard() {
+    if (currentBatchIndex < 5) {
+      currentCard = testingBatchPool[currentBatchIndex];
+      document.getElementById('batch-counter').innerText = `Test: ${currentBatchIndex + 1} / 5`;
+      startPhase4Test();
+    } else {
+      // 5-card test complete. Clear variables and start next block.
+      document.getElementById('phase-label').innerText = "Batch Complete";
+      document.getElementById('target-image').style.display = "none";
+      document.getElementById('target-name').innerText = "Session Synced";
+      document.getElementById('rasp-instructions').innerHTML = "You have completed this batch block. Click below to compile a fresh set of 10 profiles.";
+      document.getElementById('action-btn').innerText = "Load Next 10 Faces";
+      document.getElementById('action-btn').style.display = "block";
+      phase = 6; // Fresh initialization routing state
+    }
+  }
+
+  function startPhase4Test() {
     phase = 4;
     document.getElementById('target-image').style.display = "block";
     document.getElementById('target-image').style.filter = "none";
-    document.getElementById('phase-label').innerText = "Phase 4: Synaptic Retrieval";
-    document.getElementById('rasp-instructions').innerHTML = `Retrieve the name mapped to this anchor: <span style="color:var(--accent); font-weight:bold;">"${customUserAnchor}"</span>`;
+    document.getElementById('target-name').innerText = "";
+    document.getElementById('phase-label').innerText = "Synaptic Retrieval Test";
+    document.getElementById('rasp-instructions').innerHTML = `Recall the identity linked to this anchor:<br><span style="color:var(--accent); font-weight:bold; font-size:18px;">"${currentCard.anchor}"</span>`;
+    document.getElementById('action-btn').style.display = "none";
     document.getElementById('input-container').style.display = "block";
-    document.getElementById('recall-input').placeholder = "Type target name...";
+    document.getElementById('recall-input').placeholder = "Type first name...";
     document.getElementById('recall-input').value = "";
     document.getElementById('recall-input').focus();
-    
-    startTimer(10000, () => {
-      // 10s countdown to enforce immediate name access speeds
-      evaluateNameSubmission("");
-    });
   }
 
-  function evaluateNameSubmission(inputString) {
-    clearInterval(timerInterval);
+  function evaluateTestSubmission(inputString) {
     document.getElementById('input-container').style.display = "none";
     const targetVal = currentCard.name.toLowerCase();
 
-    if (inputString.toLowerCase() === targetVal) {
+    if (inputString.trim().toLowerCase() === targetVal) {
       document.getElementById('target-name').innerText = currentCard.name;
-      document.getElementById('phase-label').innerText = "Success: Circuit Active";
+      document.getElementById('phase-label').innerText = "Link Verified";
       document.getElementById('feedback-zone').style.display = "flex";
     } else {
-      phase = 5;
+      phase = 5; // Error Correction Review Phase
       document.getElementById('target-name').innerText = currentCard.name;
-      document.getElementById('phase-label').innerText = "Link Fractured";
-      document.getElementById('rasp-instructions').innerHTML = `You submitted: <span style="color:#EF4444;">"${inputString || "Timeout"}"</span>.<br><br>The correct profile target was <b>${currentCard.name}</b>.<br>Your custom anchor was: <b>"${customUserAnchor}"</b>.<br><br>Intentionally connect the target to the anchor point before restarting.`;
-      document.getElementById('action-btn').innerText = "Continue Training";
+      document.getElementById('phase-label').innerText = "Link Fractured (15% Rule)";
+      document.getElementById('rasp-instructions').innerHTML = `You typed: <span style="color:#EF4444;">"${inputString || "Empty Entry"}"</span>.<br><br>The correct profile target was <b>${currentCard.name}</b>.<br>Your custom anchor text was: <b>"${currentCard.anchor}"</b>.<br><br>Re-examine the profile and re-map the identity before proceeding.`;
+      document.getElementById('action-btn').innerText = "Continue Test";
       document.getElementById('action-btn').style.display = "block";
     }
   }
 
   function advanceStep() {
-    if (phase === 1) startPhase1B();
-    else if (phase === 5) {
-      initSession();
+    if (phase === 1) {
+      startPhase1B();
+    } else if (phase === 2) {
+      currentBatchIndex++;
+      loadNextEncodingCard();
+    } else if (phase === 5) {
+      document.getElementById('action-btn').style.display = "none";
+      currentBatchIndex++;
+      loadNextTestingCard();
+    } else if (phase === 6) {
+      document.getElementById('action-btn').style.display = "none";
+      startNewBatchIteration();
     }
   }
 
+  function submitFeedback(qualityScore) {
+    document.getElementById('feedback-zone').style.display = "none";
+    currentBatchIndex++;
+    loadNextTestingCard();
+  }
+
+  // Text Enter evaluation router
   document.getElementById('recall-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
       const val = this.value.trim();
       if (phase === 15) {
         if (val.length > 1) {
-          customUserAnchor = val;
+          currentCard.anchor = val; // Save anchor into active card tracking instance
           startPhase2();
         }
       } else if (phase === 4) {
-        evaluateNameSubmission(val);
+        evaluateTestSubmission(val);
       }
     }
   });
-
-  function submitFeedback(qualityScore) {
-    document.getElementById('feedback-zone').style.display = "none";
-    initSession();
-  }
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js');
   }
 
-  window.onload = generateUSFaceMatrix; window.addEventListener('load', initSession);
+  window.onload = startNewBatchIteration;
 </script>
 </body>
 </html>
